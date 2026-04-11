@@ -51,6 +51,8 @@ from pathlib import Path
 from anthropic import Anthropic
 from dotenv import load_dotenv
 
+from msg_printer import print_messages
+
 load_dotenv(override=True)
 
 if os.getenv("ANTHROPIC_BASE_URL"):
@@ -184,6 +186,8 @@ def run_subagent(prompt: str) -> str:
                 output = handler(**block.input) if handler else f"Unknown tool: {block.name}"
                 results.append({"type": "tool_result", "tool_use_id": block.id, "content": str(output)[:50000]})
         sub_messages.append({"role": "user", "content": results})
+    # 打印最终sub_messages内容，区分不同类型的message
+    print_messages(sub_messages, label="sub_messages", color="purple", indent=4)
     # Only the final text returns to the parent -- child context is discarded
     return "".join(b.text for b in response.content if hasattr(b, "text")) or "(no summary)"
 
@@ -236,4 +240,6 @@ if __name__ == "__main__":
             for block in response_content:
                 if hasattr(block, "text"):
                     print(block.text)
-        print()
+        # 打印当前history数组内容，区分不同类型的message
+        print_messages(history, label="history", color="yellow", indent=2)
+        print()   
