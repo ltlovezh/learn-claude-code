@@ -21,6 +21,8 @@ from pathlib import Path
 from anthropic import Anthropic
 from dotenv import load_dotenv
 
+from msg_printer import print_messages
+
 load_dotenv(override=True)
 
 if os.getenv("ANTHROPIC_BASE_URL"):
@@ -82,7 +84,9 @@ class SkillRegistry:
         for name in sorted(self.documents):
             manifest = self.documents[name].manifest
             lines.append(f"- {manifest.name}: {manifest.description}")
-        return "\n".join(lines)
+        result = "\n".join(lines)
+        print(f"[SkillRegistry] Available skills:\n{result}")
+        return result
 
     def load_full_text(self, name: str) -> str:
         document = self.documents.get(name)
@@ -295,4 +299,5 @@ if __name__ == "__main__":
         final_text = extract_text(history[-1]["content"])
         if final_text:
             print(final_text)
+        print_messages(history, label="history", color="cyan")
         print()
