@@ -23,6 +23,7 @@ from pathlib import Path
 
 from anthropic import Anthropic
 from dotenv import load_dotenv
+from msg_printer import print_messages
 
 load_dotenv(override=True)
 
@@ -311,8 +312,10 @@ def execute_tool(block, state: CompactState) -> str:
 
 def agent_loop(messages: list, state: CompactState) -> None:
     while True:
+        # 【微压缩】对较早的工具结果进行轻量压缩，保留最近的结果不变
         messages[:] = micro_compact(messages)
 
+        # 【自动压缩】当上下文大小超过阈值时，自动触发全量压缩，用摘要替换整个对话历史
         if estimate_context_size(messages) > CONTEXT_LIMIT:
             print("[auto compact]")
             messages[:] = compact_history(messages, state)
@@ -337,6 +340,7 @@ def agent_loop(messages: list, state: CompactState) -> None:
                 continue
 
             output = execute_tool(block, state)
+            # 【手动压缩标记】检测模型是否主动调用了 compact 工具，记录压缩焦点
             if block.name == "compact":
                 manual_compact = True
                 compact_focus = (block.input or {}).get("focus")
@@ -350,6 +354,7 @@ def agent_loop(messages: list, state: CompactState) -> None:
 
         messages.append({"role": "user", "content": results})
 
+        # 【手动压缩】模型主动请求压缩时执行，可携带 focus 参数指定保留重点
         if manual_compact:
             print("[manual compact]")
             messages[:] = compact_history(messages, state, focus=compact_focus)
@@ -373,4 +378,5 @@ if __name__ == "__main__":
         final_text = extract_text(history[-1]["content"])
         if final_text:
             print(final_text)
+        print_messages(history, label="history", color="cyan")
         print()
