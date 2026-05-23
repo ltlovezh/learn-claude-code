@@ -27,8 +27,11 @@ Builds on s02 (multi-tool). Usage:
     Needs: pip install anthropic python-dotenv + ANTHROPIC_API_KEY in .env
 """
 
-import os, subprocess
+import os, subprocess, sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "agents"))
+from msg_printer import print_messages
 
 try:
     import readline
@@ -248,4 +251,5 @@ if __name__ == "__main__":
         for block in history[-1]["content"]:
             if getattr(block, "type", None) == "text":
                 print(block.text)
+        print_messages(history, label="history", color="yellow", indent=2)
         print()
