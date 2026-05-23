@@ -34,7 +34,11 @@ Builds on s02 (multi-tool). Usage:
 import os
 import re
 import subprocess
+import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "agents"))
+from msg_printer import print_messages
 
 try:
     import readline
@@ -264,4 +268,5 @@ if __name__ == "__main__":
         for block in history[-1]["content"]:
             if getattr(block, "type", None) == "text":
                 print(block.text)
+        print_messages(history, label="history", color="yellow", indent=2)
         print()
