@@ -115,7 +115,14 @@ CHILD_TOOLS = [
 
 
 # -- Subagent: fresh context, filtered tools, summary-only return --
-def run_subagent(prompt: str) -> str:
+def run_subagent(prompt: str = "", **kwargs) -> str:
+    """Spawn a subagent with fresh messages[], return summary only.
+    
+    Can be called as:
+      - run_subagent(prompt="...")  # direct call
+      - run_subagent(**{"prompt": "..."})  # via TOOL_HANDLERS
+    """
+    prompt = prompt or kwargs.get("prompt", "")
     sub_messages = [{"role": "user", "content": prompt}]  # fresh context
     for _ in range(30):  # safety limit
         response = client.messages.create(

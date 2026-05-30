@@ -28,8 +28,10 @@ Run: python s06_subagent/code.py
 Needs: pip install anthropic python-dotenv + ANTHROPIC_API_KEY in .env
 """
 
-import ast, json, os, subprocess
+import ast, json, os, subprocess, sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "agents"))
 
 try:
     import readline
@@ -39,6 +41,7 @@ except ImportError:
 
 from anthropic import Anthropic
 from dotenv import load_dotenv
+from msg_printer import print_messages
 
 load_dotenv(override=True)
 if os.getenv("ANTHROPIC_BASE_URL"):
@@ -204,10 +207,18 @@ def extract_text(content) -> str:
         return str(content)
     return "\n".join(getattr(b, "text", "") for b in content if getattr(b, "type", None) == "text")
 
-def spawn_subagent(description: str) -> str:
-    """Spawn a subagent with fresh messages[], return summary only."""
-    print(f"\n\033[35m[Subagent spawned]\033[0m")
-    messages = [{"role": "user", "content": description}]  # fresh context
+# 本质是一个复杂点的Tool
+def spawn_subagent(description: str = "", **kwargs) -> str:
+    """Spawn a subagent with fresh messages[], return summary only.
+    
+    Can be called as:
+      - spawn_subagent(description="...")  # direct call
+      - spawn_subagent(**{"description": "..."})  # via TOOL_HANDLERS
+    """
+    # Support both direct calls and TOOL_HANDLERS dispatch (which passes kwargs)
+    prompt = description or kwargs.get("description", "")
+    print(f"\n\033[35m[Subagent spawned: {prompt}]\033[0m")
+    messages = [{"role": "user", "content": prompt}]  # fresh context
 
     for _ in range(30):  # safety limit
         response = client.messages.create(
@@ -245,7 +256,7 @@ def spawn_subagent(description: str) -> str:
                     break
         if not result:
             result = "Subagent stopped after 30 turns without final answer."
-    print(f"\033[35m[Subagent done]\033[0m")
+    print(f"\033[35m[Subagent done: {result}]\033[0m")
     return result  # only summary, entire message history discarded
 
 # Add task tool to parent's tools
@@ -254,6 +265,7 @@ TOOLS.append({
     "description": "Launch a subagent to handle a complex subtask. Returns only the final conclusion.",
     "input_schema": {"type": "object", "properties": {"description": {"type": "string"}}, "required": ["description"]},
 })
+# Register task tool handler — subagent is just another tool
 TOOL_HANDLERS["task"] = spawn_subagent
 
 
@@ -380,4 +392,5 @@ if __name__ == "__main__":
         for block in history[-1]["content"]:
             if getattr(block, "type", None) == "text":
                 print(block.text)
+        print_messages(history, label="history", color="yellow", indent=2)
         print()
