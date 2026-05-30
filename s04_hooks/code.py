@@ -23,7 +23,10 @@ Hooks run callbacks at fixed points in the agent loop:
 import os
 import re
 import subprocess
+import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "agents"))
 
 try:
     import readline
@@ -36,6 +39,7 @@ except ImportError:
 
 from anthropic import Anthropic
 from dotenv import load_dotenv
+from msg_printer import print_messages
 
 load_dotenv(override=True)
 if os.getenv("ANTHROPIC_BASE_URL"):
@@ -277,4 +281,5 @@ if __name__ == "__main__":
         for block in history[-1]["content"]:
             if getattr(block, "type", None) == "text":
                 print(block.text)
+        print_messages(history, label="history", color="yellow", indent=2)
         print()
