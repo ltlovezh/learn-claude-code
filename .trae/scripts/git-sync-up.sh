@@ -1,7 +1,21 @@
 #!/usr/bin/env bash
-# 同步上游仓库到本地 fork 的两个分支
-#   1. upstream-tracking → 上游精确镜像
-#   2. main → rebase 到 upstream-tracking，保留本地自定义提交
+# 同步上游仓库到本地 fork。
+#
+# 远端职责：
+#   - upstream → 原始仓库 (shareAI-lab/learn-claude-code)，只读上游来源
+#   - origin   → 个人 fork (ltlovezh/learn-claude-code)，推送目标
+#
+# 分支职责：
+#   - upstream-tracking → 上游精确镜像，始终 reset --hard 到 upstream/main，
+#                         不在此分支做任何本地改动
+#   - main              → 日常开发分支，在 upstream-tracking 基础上 rebase，
+#                         保留本地自定义提交，用 --force-with-lease 推送到 origin
+#
+# 同步流程：
+#   1. fetch upstream/main
+#   2. upstream-tracking reset --hard 到 upstream/main 并推送到 origin
+#   3. 校验 upstream/main、本地 upstream-tracking、origin/upstream-tracking 三方一致
+#   4. 把原分支 rebase 到 upstream-tracking 并 force-with-lease 推送到 origin
 set -e
 
 if ! git diff-index --quiet HEAD --; then
