@@ -24,8 +24,10 @@ Builds on s08 (context compact). Usage:
     Needs: pip install anthropic python-dotenv + ANTHROPIC_API_KEY in .env
 """
 
-import os, subprocess, json, time, re
+import os, subprocess, json, time, re, sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "agents"))
 
 try:
     import readline
@@ -35,6 +37,7 @@ except ImportError:
 
 from anthropic import Anthropic
 from dotenv import load_dotenv
+from msg_printer import print_messages
 
 load_dotenv(override=True)
 if os.getenv("ANTHROPIC_BASE_URL"): os.environ.pop("ANTHROPIC_AUTH_TOKEN", None)
@@ -129,6 +132,7 @@ def list_memory_files() -> list[dict]:
     return result
 
 
+# 根据最近对话挑选相关记忆：优先用 LLM 选择，失败则降级为关键词匹配，最多返回 max_items 个文件名
 def select_relevant_memories(messages: list, max_items: int = 5) -> list[str]:
     """Select relevant memory filenames by matching recent conversation against
     memory names/descriptions. Uses a simple LLM call (or falls back to keyword
@@ -204,6 +208,7 @@ def select_relevant_memories(messages: list, max_items: int = 5) -> list[str]:
     return selected
 
 
+# 读取相关记忆的完整内容，用 <relevant_memories> 标签包裹，供注入到当前 user turn
 def load_memories(messages: list) -> str:
     """Load relevant memory content for injection into context."""
     selected_files = select_relevant_memories(messages)
@@ -219,6 +224,12 @@ def load_memories(messages: list) -> str:
     return "\n\n".join(parts)
 
 
+# 从最近对话中提取新记忆，每轮结束后运行。流程：
+#   1. 拼接最近 10 条消息（含 user/assistant，标注 role）为对话文本
+#   2. 列出已有记忆的 name+description，连同对话一起发给 LLM，要求只提取"新"信息以避免重复
+#   3. LLM 返回 {name, type, description, body} 的 JSON 数组
+#   4. 逐条写入记忆文件（description 和 body 都非空才写），并刷新索引
+# 整个过程尽力而为：解析失败或无新信息则静默跳过，不影响主流程
 def extract_memories(messages: list):
     """Extract new memories from recent dialogue. Runs after each turn."""
     # Collect recent conversation text
@@ -606,10 +617,13 @@ def agent_loop(messages: list):
             request_messages = messages
             if memories_content and memory_turn is not None and memory_turn < len(messages):
                 request_messages = messages.copy()
+                # 仅在副本上替换该条消息：保留原 role 等字段，把记忆内容拼到用户原文前面（不污染真实 history）
                 request_messages[memory_turn] = {
                     **messages[memory_turn],
                     "content": memories_content + "\n\n" + messages[memory_turn]["content"],
                 }
+                print(f"\033[36m[用户原始问题] {messages[memory_turn]['content']}\033[0m")
+                print(f"\033[33m[注入的记忆内容]\n{memories_content}\033[0m")
             response = client.messages.create(
                 model=MODEL, system=system, messages=request_messages, tools=TOOLS, max_tokens=8000
             )
@@ -652,4 +666,5 @@ if __name__ == "__main__":
         agent_loop(history)
         for block in history[-1]["content"]:
             if getattr(block, "type", None) == "text": print(block.text)
+        print_messages(history, label="history", color="yellow", indent=2)
         print()
