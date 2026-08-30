@@ -30,7 +30,9 @@ shareAI-lab/learn-claude-code (upstream)
 
 这个仓库和工作区里另外三个不同 —— 它是**教学项目**（Python，19 章），不是可用的 harness。所以 `diy` 上的改动**不只在 `learning/` 里**：跟着教程改课程代码本身（如给 `s03_permission` 加对话历史打印）也是学习的一部分。
 
-这意味着 rebase 到新的 `main` 时**可能产生冲突**，不像另外三个仓库那样天然无冲突。上游目前在做 monorepo 重构（见 `upstream/refactor/learn-agent-harness-monorepo`），冲突概率不低。
+这意味着 rebase 到新的 `main` 时**可能产生冲突**。另外三个仓库目前还没有这类改动，所以暂时不冲突——但那是约定守得好，不是它们天生豁免。
+
+上游正在做 monorepo 重构（见 `upstream/refactor/learn-agent-harness-monorepo`），这个仓库的冲突概率明显更高。
 
 ## 同步上游
 
