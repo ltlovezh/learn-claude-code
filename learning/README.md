@@ -70,8 +70,8 @@ git switch diy && git rebase main && git push --force-with-lease origin diy
 | --- | --- |
 | `s01_agent_loop` | Agent Loop |
 | `s02_tool_use` / `s03_permission` | Tool 系统 / 权限 |
-| `s04_hooks` / `s19_mcp_plugin` | 扩展机制 |
-| `s06_subagent` / `s15_agent_teams` | Subagent |
+| `s04_hooks` / `s14_mcp_plugin` | 扩展机制 |
+| `s06_subagent` / `s13_agent_teams` | Subagent |
 | `s08_context_compact` | 上下文压缩 |
 | `s09_memory` | 记忆 |
 
